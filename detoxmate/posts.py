@@ -74,11 +74,10 @@ def make_posts(job: str, day: date) -> list[Post]:
     if job in ("all", "todo"):
         title = f"{label} · 오늘의 할 일"
         marker = f"-# detoxmate:todo:{day.isoformat()}"
-        template_date = f"{day.month}/{day.day}({'월화수목금토일'[day.weekday()]})"
         content = (
-            f"## ✅ {title}\n\n오늘 한 일과 병목, 짧은 회고를 아래 스레드에 남겨 주세요.\n"
+            f"## ✅ {title}\n\n오늘 한 일과 병목, 오늘의 한마디와 회고를 아래 스레드에 남겨 주세요.\n"
             "양식을 복사해서 편하게 작성하면 됩니다.\n\n"
-            f"```text\n[템플릿] {template_date}\n\n한일/병목:\n\n오늘 한마디/회고:\n```\n\n"
+            "```text\n[오늘 할 일]\n\n한 일 :\n병목 (없으면 없음) :\n오늘의 한마디 :\n회고 :\n```\n\n"
             f"{marker}"
         )
         posts.append(Post("todo", day, title, content, marker))

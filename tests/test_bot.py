@@ -104,17 +104,17 @@ class PostTests(unittest.TestCase):
         saturday_utc = friday_utc + timedelta(minutes=1)
         self.assertEqual(korea_today(saturday_utc), date(2026, 9, 12))
         self.assertEqual(len(make_posts("all", korea_today(saturday_utc))), 2)
-        self.assertIn("[템플릿] 9/12(토)", make_posts("todo", korea_today(saturday_utc))[0].content)
+        self.assertEqual(make_posts("todo", korea_today(saturday_utc))[0].title, "09월 12일 · 오늘의 할 일")
 
     def test_todo_template_and_posting_cover_all_seven_days(self):
         for offset in range(7):
             day = date(2026, 9, 7) + timedelta(days=offset)
             posts = make_posts("all", day)
             self.assertEqual(len(posts), 2)
-            self.assertIn(f"[템플릿] 9/{7 + offset}({'월화수목금토일'[offset]})", posts[1].content)
+            self.assertEqual(posts[1].title, f"09월 {7 + offset:02d}일 · 오늘의 할 일")
         todo = make_posts("todo", date(2026, 9, 9))[0]
         self.assertEqual(todo.title, "09월 09일 · 오늘의 할 일")
-        self.assertIn("```text\n[템플릿] 9/9(수)\n\n한일/병목:\n\n오늘 한마디/회고:\n```", todo.content)
+        self.assertIn("```text\n[오늘 할 일]\n\n한 일 :\n병목 (없으면 없음) :\n오늘의 한마디 :\n회고 :\n```", todo.content)
 
     def test_shuffled_questions_are_stable_and_exhaust_each_cycle(self):
         questions = load_questions()
@@ -323,7 +323,7 @@ class EndToEndTests(unittest.TestCase):
             self.assertEqual(main(["--job", "todo"]), 0)
         self.assertEqual(len(self.server.messages[TODO]), 1)
         self.assertEqual(len(self.server.threads), 1)
-        self.assertIn("[템플릿] 9/12(토)", self.server.messages[TODO][0]["content"])
+        self.assertIn("[오늘 할 일]", self.server.messages[TODO][0]["content"])
 
     def test_missing_history_permission_never_publishes(self):
         self.server.permissions &= ~(1 << 16)
