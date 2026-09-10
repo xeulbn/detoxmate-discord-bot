@@ -189,6 +189,14 @@ class ConfigTests(unittest.TestCase):
             with patch.dict(os.environ, env, clear=True), self.assertRaises(ConfigError):
                 credentials(["question", "todo"])
 
+    def test_missing_channel_is_reported_separately_from_bad_format(self):
+        with patch.dict(os.environ, {**ENV, "QUESTION_CHANNEL_ID": ""}, clear=True):
+            with self.assertRaisesRegex(ConfigError, "QUESTION_CHANNEL_ID가 비어 있습니다"):
+                credentials(["question"])
+        with patch.dict(os.environ, {**ENV, "QUESTION_CHANNEL_ID": "QUESTION_CHANNEL_ID=" + QUESTION}, clear=True):
+            with self.assertRaisesRegex(ConfigError, "숫자로 된 채널 ID만"):
+                credentials(["question"])
+
 
 class PermissionTests(unittest.TestCase):
     def permissions(self, overwrites, base=ALL_PERMISSIONS):

@@ -40,8 +40,10 @@ def credentials(jobs: list[str]) -> tuple[str, dict[str, str]]:
     for job in jobs:
         key = CHANNEL_KEYS[job]
         channel_id = os.environ.get(key, "").strip()
+        if not channel_id:
+            raise ConfigError(f"{key}가 비어 있습니다. 로컬은 .env, GitHub Actions는 Repository Variables 또는 Secrets에 설정하세요.")
         if not re.fullmatch(r"[0-9]{17,20}", channel_id):
-            raise ConfigError(f"{key}에 채널 이름 대신 숫자로 된 채널 ID를 설정하세요.")
+            raise ConfigError(f"{key}에는 숫자로 된 채널 ID만 입력하세요. 채널 이름, 따옴표, '{key}=' 부분은 제외하세요.")
         channels[job] = channel_id
     if len(channels) > 1 and len(set(channels.values())) != len(channels):
         raise ConfigError("오늘의 질문과 오늘의 할 일에는 서로 다른 채널 ID를 설정하세요.")

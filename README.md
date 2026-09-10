@@ -115,7 +115,7 @@ git push -u origin main
 | **Variables** | `QUESTION_CHANNEL_ID` | 오늘의 질문 텍스트 채널 ID |
 | **Variables** | `TODO_CHANNEL_ID` | 오늘의 할 일 텍스트 채널 ID |
 
-채널 ID는 비밀 값이 아니므로 Repository Variables를 사용합니다. 토큰은 반드시 Repository Secret에 저장합니다. 테스트 워크플로에는 봇 토큰이 전달되지 않습니다.
+채널 ID는 비밀 값이 아니므로 Repository Variables에 등록하면 됩니다. 이미 같은 이름의 Repository Secrets에 등록했다면 그대로 사용할 수 있습니다. 워크플로는 Variables를 먼저 읽고, 비어 있으면 Secrets를 읽습니다. 값에는 이름이나 따옴표 없이 숫자 ID만 넣습니다. 토큰은 반드시 Repository Secret에 저장합니다. 테스트 워크플로에는 봇 토큰이 전달되지 않습니다.
 
 1. 위 파일들이 저장소의 **기본 브랜치**에 있는지 확인합니다.
 2. **Actions → 오늘의 질문 → Run workflow**를 선택합니다. `dry_run` 체크 상태에서는 로그에 미리보기만 출력됩니다.
@@ -164,6 +164,8 @@ schedule:
 | 증상 | 확인할 사항 |
 | --- | --- |
 | `DISCORD_BOT_TOKEN` 설정 오류 | `.env` 또는 Actions Secret 이름, 토큰 앞뒤 공백과 `Bot ` 접두사 |
+| 채널 ID가 비어 있음 | 로컬 `.env` 또는 Actions의 Repository Variables/Secrets에 정확한 이름으로 등록했는지 확인 |
+| 채널 ID 형식 오류 | 값에 숫자 ID만 입력했는지 확인. 채널 이름, 따옴표, `QUESTION_CHANNEL_ID=` 같은 접두사는 제외 |
 | HTTP 401 | 만료/재발급된 토큰인지 확인 |
 | HTTP 403 또는 권한 부족 | 서버 역할뿐 아니라 채널의 역할·멤버별 권한 덮어쓰기도 확인 |
 | HTTP 404 | 채널 ID, 봇의 서버 참여와 채널 접근 권한 확인 |

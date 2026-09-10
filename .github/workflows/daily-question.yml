@@ -32,7 +32,7 @@ jobs:
       - name: 게시 또는 미리보기
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-          QUESTION_CHANNEL_ID: ${{ vars.QUESTION_CHANNEL_ID }}
+          QUESTION_CHANNEL_ID: ${{ vars.QUESTION_CHANNEL_ID || secrets.QUESTION_CHANNEL_ID }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           args=(--job question)
