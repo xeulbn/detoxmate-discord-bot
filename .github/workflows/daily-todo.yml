@@ -2,7 +2,7 @@ name: 오늘의 할 일
 
 on:
   schedule:
-    - cron: '0 9 * * 1-5'
+    - cron: '0 9 * * *'
       timezone: Asia/Seoul
   workflow_dispatch:
     inputs:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from datetime import date, datetime, time
@@ -10,6 +11,7 @@ from .config import ROOT, ConfigError
 
 
 KST = ZoneInfo("Asia/Seoul")
+QUESTION_CYCLE_START = date(2026, 9, 10)
 
 
 @dataclass(frozen=True)
@@ -40,24 +42,43 @@ def load_questions(path: Path = ROOT / "questions.json") -> list[str]:
     return questions
 
 
+def _question_order(questions: list[str], cycle: int) -> list[str]:
+    # A hash-based shuffle is reproducible on both the laptop and Actions,
+    # without saving state or depending on Python's random implementation.
+    return sorted(questions, key=lambda q: hashlib.sha256(f"detoxmate:{cycle}:{q}".encode()).digest())
+
+
+def pick_question(questions: list[str], day: date) -> str:
+    cycle, position = divmod((day - QUESTION_CYCLE_START).days, len(questions))
+    if len(questions) <= 2:
+        # With two questions, alternating is the only way to avoid repeats.
+        return _question_order(questions, 0)[position]
+    order = _question_order(questions, cycle)
+    previous_last = _question_order(questions, cycle - 1)[-1]
+    if order[0] == previous_last:
+        # Swapping the first two leaves the last item stable for the next cycle.
+        order[0], order[1] = order[1], order[0]
+    return order[position]
+
+
 def make_posts(job: str, day: date) -> list[Post]:
     posts = []
     label = f"{day.month:02d}월 {day.day:02d}일"
     if job in ("all", "question"):
         questions = load_questions()
-        # Cycle through the list once before repeating; reruns pick the same entry.
-        question = questions[(day - date(2026, 1, 1)).days % len(questions)]
+        question = pick_question(questions, day)
         title = f"{label} · 오늘의 질문"
         marker = f"-# detoxmate:question:{day.isoformat()}"
         content = f"## 💬 {title}\n\n{question}\n\n아래 스레드에서 편하게 이야기해 주세요. 짧은 답변도 좋아요!\n\n{marker}"
         posts.append(Post("question", day, title, content, marker))
-    if job in ("all", "todo") and day.weekday() < 5:
+    if job in ("all", "todo"):
         title = f"{label} · 오늘의 할 일"
         marker = f"-# detoxmate:todo:{day.isoformat()}"
+        template_date = f"{day.month}/{day.day}({'월화수목금토일'[day.weekday()]})"
         content = (
-            f"## ✅ {title}\n\n오늘 할 일과 도움이 필요한 일을 아래 스레드에 남겨 주세요.\n"
+            f"## ✅ {title}\n\n오늘 한 일과 병목, 짧은 회고를 아래 스레드에 남겨 주세요.\n"
             "양식을 복사해서 편하게 작성하면 됩니다.\n\n"
-            "```text\n[오늘 할 일]\n- \n- \n\n[도움이 필요한 일]\n- 없으면 ‘없음’\n```\n\n"
+            f"```text\n[템플릿] {template_date}\n\n한일/병목:\n\n오늘 한마디/회고:\n```\n\n"
             f"{marker}"
         )
         posts.append(Post("todo", day, title, content, marker))

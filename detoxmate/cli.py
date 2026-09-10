@@ -30,14 +30,9 @@ def main(argv=None) -> int:
         if args.dry_run:
             for post in posts:
                 print(f"[{post.job}] 스레드: {post.title}\n{post.content}\n")
-            if not posts:
-                print(f"{day}: 주말이므로 오늘의 할 일을 게시하지 않습니다.")
             return 0
         if not args.check:
             jobs = [post.job for post in posts]
-            if not jobs:
-                LOG.info("%s: 주말이므로 오늘의 할 일을 건너뜁니다.", day)
-                return 0
         load_env()
         token, channel_ids = credentials(jobs)
         client = DiscordClient(token)

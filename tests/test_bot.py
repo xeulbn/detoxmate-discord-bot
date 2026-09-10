@@ -15,7 +15,7 @@ from urllib.parse import parse_qs, urlparse
 from detoxmate.cli import main
 from detoxmate.config import ConfigError, credentials, load_env
 from detoxmate.discord import API_URL, REQUIRED_PERMISSIONS, DiscordClient, DiscordError, channel_permissions
-from detoxmate.posts import KST, korea_today, load_questions, make_posts
+from detoxmate.posts import KST, korea_today, load_questions, make_posts, pick_question
 
 
 BOT = "300000000000000001"
@@ -103,24 +103,47 @@ class PostTests(unittest.TestCase):
         self.assertEqual(korea_today(friday_utc), date(2026, 9, 11))
         saturday_utc = friday_utc + timedelta(minutes=1)
         self.assertEqual(korea_today(saturday_utc), date(2026, 9, 12))
-        self.assertEqual(len(make_posts("all", korea_today(saturday_utc))), 1)
+        self.assertEqual(len(make_posts("all", korea_today(saturday_utc))), 2)
+        self.assertIn("[템플릿] 9/12(토)", make_posts("todo", korea_today(saturday_utc))[0].content)
 
-    def test_weekends_and_weekday_template(self):
+    def test_todo_template_and_posting_cover_all_seven_days(self):
         for offset in range(7):
             day = date(2026, 9, 7) + timedelta(days=offset)
             posts = make_posts("all", day)
-            self.assertEqual(len(posts), 2 if offset < 5 else 1)
-        todo = make_posts("todo", DAY)[0]
-        self.assertEqual(todo.title, "09월 10일 · 오늘의 할 일")
-        self.assertIn("[오늘 할 일]", todo.content)
-        self.assertIn("[도움이 필요한 일]", todo.content)
+            self.assertEqual(len(posts), 2)
+            self.assertIn(f"[템플릿] 9/{7 + offset}({'월화수목금토일'[offset]})", posts[1].content)
+        todo = make_posts("todo", date(2026, 9, 9))[0]
+        self.assertEqual(todo.title, "09월 09일 · 오늘의 할 일")
+        self.assertIn("```text\n[템플릿] 9/9(수)\n\n한일/병목:\n\n오늘 한마디/회고:\n```", todo.content)
 
-    def test_question_rotation_is_stable_and_exhausts_list(self):
+    def test_shuffled_questions_are_stable_and_exhaust_each_cycle(self):
         questions = load_questions()
-        selected = [make_posts("question", DAY + timedelta(days=i))[0].content.splitlines()[2] for i in range(len(questions))]
-        self.assertEqual(set(selected), set(questions))
+        self.assertGreaterEqual(len(questions), 365)
+        start = date(2026, 9, 10)
+        cycles = []
+        for cycle in range(2):
+            selected = [pick_question(questions, start + timedelta(days=cycle * len(questions) + i)) for i in range(len(questions))]
+            self.assertEqual(set(selected), set(questions))
+            self.assertNotEqual(selected, questions)
+            cycles.append(selected)
+        self.assertNotEqual(cycles[0], cycles[1])
         self.assertEqual(make_posts("question", DAY), make_posts("question", DAY))
-        self.assertEqual(selected[0], make_posts("question", DAY + timedelta(days=len(questions)))[0].content.splitlines()[2])
+
+    def test_cycle_boundaries_do_not_repeat_yesterdays_question(self):
+        start = date(2026, 9, 10)
+        for questions in (["a", "b"], ["a", "b", "c"], load_questions()):
+            for cycle in range(-2, 20):
+                boundary = start + timedelta(days=cycle * len(questions))
+                self.assertNotEqual(pick_question(questions, boundary), pick_question(questions, boundary - timedelta(days=1)))
+        self.assertEqual(pick_question(["only question"], start), "only question")
+
+    def test_shuffle_boundary_fix_preserves_last_question(self):
+        start = date(2026, 9, 10)
+        order = lambda questions, cycle: ["a", "b", "c"] if cycle == 0 else ["b", "c", "a"]
+        with patch("detoxmate.posts._question_order", side_effect=order):
+            selected = [pick_question(["a", "b", "c"], start + timedelta(days=i)) for i in range(3)]
+        self.assertEqual(selected, ["b", "a", "c"])
+
 
     def test_invalid_questions_fail_before_posting(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -143,11 +166,6 @@ class PostTests(unittest.TestCase):
             with self.assertRaises(SystemExit) as caught:
                 main(["--date", "2026-09-10"])
         self.assertEqual(caught.exception.code, 2)
-
-    def test_weekend_todo_needs_no_credentials(self):
-        with patch("detoxmate.cli.korea_today", return_value=date(2026, 9, 12)), patch("detoxmate.cli.credentials") as creds:
-            self.assertEqual(main(["--job", "todo"]), 0)
-            creds.assert_not_called()
 
 
 class ConfigTests(unittest.TestCase):
@@ -299,6 +317,13 @@ class EndToEndTests(unittest.TestCase):
     def test_check_is_read_only(self):
         self.assertEqual(main(["--check"]), 0)
         self.assertEqual(self.server.writes, [])
+
+    def test_weekend_todo_creates_message_and_thread(self):
+        with patch("detoxmate.cli.korea_today", return_value=date(2026, 9, 12)):
+            self.assertEqual(main(["--job", "todo"]), 0)
+        self.assertEqual(len(self.server.messages[TODO]), 1)
+        self.assertEqual(len(self.server.threads), 1)
+        self.assertIn("[템플릿] 9/12(토)", self.server.messages[TODO][0]["content"])
 
     def test_missing_history_permission_never_publishes(self):
         self.server.permissions &= ~(1 << 16)
