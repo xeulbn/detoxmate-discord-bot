@@ -1,0 +1,40 @@
+name: 오늘의 할 일
+
+on:
+  schedule:
+    - cron: '0 9 * * 1-5'
+      timezone: Asia/Seoul
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '미리보기만 실행 (실제 게시하려면 해제)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: detoxmate-todo
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: 게시 또는 미리보기
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          TODO_CHANNEL_ID: ${{ vars.TODO_CHANNEL_ID }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=(--job todo)
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python detoxmate-discordbot.py "${args[@]}"
