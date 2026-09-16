@@ -69,7 +69,7 @@ def make_posts(job: str, day: date) -> list[Post]:
         question = pick_question(questions, day)
         title = f"{label} · 오늘의 질문"
         marker = f"-# detoxmate:question:{day.isoformat()}"
-        content = f"## 💬 {title}\n\n{question}\n\n아래 스레드에서 편하게 이야기해 주세요. 짧은 답변도 좋아요!\n\n{marker}"
+        content = f"## 💬 {title}\n\n{question}\n\n내 생각이나 경험을 아래 스레드에서 편하게 나눠 주세요. 한두 문장도 좋아요!\n\n{marker}"
         posts.append(Post("question", day, title, content, marker))
     if job in ("all", "todo"):
         title = f"{label} · 오늘의 할 일"
