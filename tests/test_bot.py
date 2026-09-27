@@ -114,7 +114,18 @@ class PostTests(unittest.TestCase):
             self.assertEqual(posts[1].title, f"09월 {7 + offset:02d}일 · 오늘의 할 일")
         todo = make_posts("todo", date(2026, 9, 9))[0]
         self.assertEqual(todo.title, "09월 09일 · 오늘의 할 일")
-        self.assertIn("```text\n[오늘 할 일]\n\n한 일 :\n병목 (없으면 없음) :\n오늘의 한마디 :\n회고 :\n```", todo.content)
+        self.assertIn(
+            "```text\n[스크럼]\n"
+            "어제 한 일 :\n"
+            "오늘 할 일 :\n"
+            "병목 / 도움이 필요한 점 (없으면 없음) :\n\n"
+            "[회고]\n"
+            "오늘 한 일 :\n"
+            "잘한 점 / 배운 점 :\n"
+            "아쉬운 점 :\n"
+            "내일 개선할 점 :\n```",
+            todo.content,
+        )
 
     def test_shuffled_questions_are_stable_and_exhaust_each_cycle(self):
         questions = load_questions()
@@ -331,7 +342,8 @@ class EndToEndTests(unittest.TestCase):
             self.assertEqual(main(["--job", "todo"]), 0)
         self.assertEqual(len(self.server.messages[TODO]), 1)
         self.assertEqual(len(self.server.threads), 1)
-        self.assertIn("[오늘 할 일]", self.server.messages[TODO][0]["content"])
+        self.assertIn("[스크럼]", self.server.messages[TODO][0]["content"])
+        self.assertIn("[회고]", self.server.messages[TODO][0]["content"])
 
     def test_missing_history_permission_never_publishes(self):
         self.server.permissions &= ~(1 << 16)

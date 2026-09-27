@@ -75,9 +75,17 @@ def make_posts(job: str, day: date) -> list[Post]:
         title = f"{label} · 오늘의 할 일"
         marker = f"-# detoxmate:todo:{day.isoformat()}"
         content = (
-            f"## ✅ {title}\n\n오늘 한 일과 병목, 오늘의 한마디와 회고를 아래 스레드에 남겨 주세요.\n"
-            "양식을 복사해서 편하게 작성하면 됩니다.\n\n"
-            "```text\n[오늘 할 일]\n\n한 일 :\n병목 (없으면 없음) :\n오늘의 한마디 :\n회고 :\n```\n\n"
+            f"## ✅ {title}\n\n오늘의 스크럼과 회고를 아래 스레드에 남겨 주세요.\n"
+            "양식을 복사해 아침에는 스크럼을 작성하고, 하루를 마칠 때 같은 글에 회고를 추가해 주세요.\n\n"
+            "```text\n[스크럼]\n"
+            "어제 한 일 :\n"
+            "오늘 할 일 :\n"
+            "병목 / 도움이 필요한 점 (없으면 없음) :\n\n"
+            "[회고]\n"
+            "오늘 한 일 :\n"
+            "잘한 점 / 배운 점 :\n"
+            "아쉬운 점 :\n"
+            "내일 개선할 점 :\n```\n\n"
             f"{marker}"
         )
         posts.append(Post("todo", day, title, content, marker))
